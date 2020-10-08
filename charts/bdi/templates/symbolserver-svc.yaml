@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "bdi.symbolserver.fullname" . }}
+  labels:
+    app: {{ template "bdi.symbolserver.fullname" . }}
+    chart: {{ template "bdi.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 55030
+      targetPort: symbol
+      protocol: TCP
+      name: symbol
+  selector:
+    app: {{ template "bdi.symbolserver.fullname" . }}
+    release: {{ .Release.Name }}
