@@ -1,0 +1,80 @@
+apiVersion: v1
+entries:
+  bdi:
+  - apiVersion: v1
+    appVersion: 6.78.0
+    created: "2020-10-11T12:04:42.967855406Z"
+    dependencies:
+    - name: licenses
+      repository: '@qlik'
+      version: 2.0.9
+    - alias: managementconsole
+      name: bdi-mc
+      repository: '@qlik'
+      version: 0.2.19
+    - condition: nginx-ingress.enabled
+      name: nginx-ingress
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: 1.39.0
+    - condition: redis-ha.enabled
+      name: redis-ha
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: 3.6.1
+    - alias: sourcecloudgw
+      condition: sourcecloudgw.enabled
+      name: minio
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: 5.0.25
+    - alias: outputcloudgw
+      condition: outputcloudgw.enabled
+      name: minio
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: 5.0.25
+    description: Big Data Index
+    digest: 3d2dc483ae32c2096794e418ccca05f2e00000bd06407435a7f9e43d51676967
+    maintainers:
+    - name: PA BDI
+      url: https://qlikdev.slack.com/channels/dev-bdi-buildstatus
+    name: bdi
+    urls:
+    - bdi-6.5.0.tgz
+    version: 6.5.0
+  - apiVersion: v1
+    appVersion: 6.78.0
+    created: "2020-10-11T12:04:42.993731671Z"
+    dependencies:
+    - name: licenses
+      repository: '@qlik'
+      version: 2.0.9
+    - alias: managementconsole
+      name: bdi-mc
+      repository: '@qlik'
+      version: 0.2.19
+    - condition: nginx-ingress.enabled
+      name: nginx-ingress
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: 1.39.0
+    - condition: redis-ha.enabled
+      name: redis-ha
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: 3.6.1
+    - alias: sourcecloudgw
+      condition: sourcecloudgw.enabled
+      name: minio
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: 5.0.25
+    - alias: outputcloudgw
+      condition: outputcloudgw.enabled
+      name: minio
+      repository: https://kubernetes-charts.storage.googleapis.com/
+      version: 5.0.25
+    description: Big Data Index
+    digest: 3d2dc483ae32c2096794e418ccca05f2e00000bd06407435a7f9e43d51676967
+    maintainers:
+    - name: PA BDI
+      url: https://qlikdev.slack.com/channels/dev-bdi-buildstatus
+    name: bdi
+    urls:
+    - charts/bdi-6.5.0.tgz
+    version: 6.5.0
+generated: "2020-10-11T12:04:42.93332822Z"
