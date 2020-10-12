@@ -4,8 +4,8 @@
 ## Configuration values for BDI management console component.
 
 image:
-  registry: ghcr.io
-  repository: qlik-download/bdi-mc
+  registry: qliktech-docker.jfrog.io
+  repository: bdi-mc
   tag: 1.2.0
   # pullPolicy: IfNotPresent
 
