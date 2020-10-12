@@ -1,9 +1,9 @@
 image:
   ## Default registry where this repository should be pulled from.
   ## Will be overridden by `global.imageRegistry` if set
-  registry: qliktech-docker.jfrog.io
+  registry: ghcr.io
   ## Component's image name.
-  repository: licenses
+  repository: qlik-download/licenses
   ## Licenses image version.
   ## ref: https://hub.docker.com/r/qlik/licenses/tags/
   ##
@@ -106,8 +106,8 @@ deployment:
   #
   election:
     image:
-      registry: qliktech-docker.jfrog.io
-      repository: leader-elector
+      registry: ghcr.io
+      repository: qlik-download/leader-elector
       tag: "1.8.0"
     ## election configs
     configs:
