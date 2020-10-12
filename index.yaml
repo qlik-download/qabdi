@@ -3,7 +3,7 @@ entries:
   bdi:
   - apiVersion: v1
     appVersion: 6.78.0
-    created: "2020-10-11T12:22:07.444687514Z"
+    created: "2020-10-12T06:49:47.703377655Z"
     dependencies:
     - name: licenses
       repository: '@qlik'
@@ -31,7 +31,7 @@ entries:
       repository: https://kubernetes-charts.storage.googleapis.com/
       version: 5.0.25
     description: Big Data Index
-    digest: ef18fb9d6282d5ab900de119255d7d85c75b3186bb791dfbd4d457ad388e199d
+    digest: baec88c3f25b5eeb355055278b200ad8beacdc7e5b3160058063b8be7330ec50
     maintainers:
     - name: PA BDI
       url: https://qlikdev.slack.com/channels/dev-bdi-buildstatus
@@ -41,7 +41,7 @@ entries:
     version: 6.5.0
   - apiVersion: v1
     appVersion: 6.78.0
-    created: "2020-10-11T12:22:07.475455912Z"
+    created: "2020-10-12T06:49:47.735245697Z"
     dependencies:
     - name: licenses
       repository: '@qlik'
@@ -69,7 +69,7 @@ entries:
       repository: https://kubernetes-charts.storage.googleapis.com/
       version: 5.0.25
     description: Big Data Index
-    digest: ef18fb9d6282d5ab900de119255d7d85c75b3186bb791dfbd4d457ad388e199d
+    digest: baec88c3f25b5eeb355055278b200ad8beacdc7e5b3160058063b8be7330ec50
     maintainers:
     - name: PA BDI
       url: https://qlikdev.slack.com/channels/dev-bdi-buildstatus
@@ -77,4 +77,4 @@ entries:
     urls:
     - charts/bdi-6.5.0.tgz
     version: 6.5.0
-generated: "2020-10-11T12:22:07.413888817Z"
+generated: "2020-10-12T06:49:47.66945431Z"
