@@ -1,5 +1,0 @@
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: {{ template "bdi.symbolserver.logging.fullname" . }}
-  {{- template "bdi.indexing.loggingsettings" (dict "Values" .Values "CompName" "symbolserver" "CompConfig" .Values.symbolserver.config ) }}

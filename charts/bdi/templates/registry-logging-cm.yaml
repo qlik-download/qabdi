@@ -1,5 +1,0 @@
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: {{ template "bdi.registry.logging.fullname" . }}
-  {{- template "bdi.indexing.loggingsettings" (dict "Values" .Values "CompName" "registry" "CompConfig" .Values.registry.config ) }}
