@@ -1,0 +1,5 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ template "bdi.persistence.logging.fullname" . }}
+  {{- template "bdi.indexing.loggingsettings" (dict "Values" .Values "CompName" "persistence" "CompConfig" .Values.persistence.config ) }}

@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "bdi.restapi.fullname" . }}
+  labels:
+    app: {{ template "bdi.restapi.fullname" . }}
+    chart: {{ template "bdi.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.restapi.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "bdi.restapi.fullname" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "bdi.restapi.fullname" . }}
+        release: {{ .Release.Name }}
+      annotations:
+      {{- if .Values.restapi.annotations }}
+{{ toYaml .Values.restapi.annotations | indent 8 }}
+      {{- end }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+      {{- end }}
+      {{- if .Values.restapi.additionalAffinities }}
+      affinity:
+{{ toYaml .Values.restapi.additionalAffinities | indent 8 }}
+      {{- end }}
+      {{- with .Values.restapi.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      tolerations:
+{{ toYaml .Values.restapi.tolerations | indent 8 }}
+      containers:
+        - name: {{ template "bdi.restapi.fullname" . }}
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/home/ubuntu/dist/rest_service/abdi_rest_service"]
+          args: [
+            {{- if .Values.restapi.tls.enabled }}
+            "--cert_file", "/home/ubuntu/tls/tls.cert",
+            "--key_file", "/home/ubuntu/tls/tls.key",
+            {{- end }}
+            "-l", "{{ .Values.acceptLicense }}"
+          ]
+          env:
+            - name: ACCEPT_QULA
+              value: {{ .Values.acceptLicense | quote }}
+            - name: BDI_CHART_VERSION
+              value: {{ .Chart.Version | quote }}
+            - name: BDI_PRODUCT_VERSION
+              value: {{ .Chart.AppVersion | quote }}
+            {{- include "bdi.cloudSync.exportSettings" . | indent 12 }}
+            {{- if .Values.outputcloudgw.enabled }}
+            - name: BDI_OUTPUT_CLOUD_SYNC_ENABLED
+              value: "true"
+            {{- end }}
+            {{- if .Values.brokerservice.enabled }}
+            - name: BDI_SOURCE_DATA_CLOUD_SYNC_ENABLED
+              value: "true"
+            {{- end }}
+            - name: ENABLE_CRASH_DUMP
+              value: {{ .Values.enableCrashDumpUpload | quote }}
+            - name: KUBERNETES_MODE
+              value: "true"
+            - name: REGISTRY_URI
+              value: "{{ template "bdi.registry.fullname" . }}:55057"
+            - name: PERSISTENCE_URI
+              value: "{{ template "bdi.persistence.fullname" . }}:55010"
+            - name: INDEXING_MANAGER_URI
+              value: "{{ template "bdi.indexingmanager.fullname" . }}:55020"
+            - name: OUTPUT_ROOT_PATH
+              value: "{{ .Values.output.path }}"
+            - name: SOURCEDATA_PATH
+              value: "{{ .Values.data.path }}"
+            - name: SOURCEDATA_CLOUD_PATH
+              value: ""
+            - name: DATASET_NAME
+              value: "{{ .Values.data.name }}"
+            {{- if hasKey .Values.symbolserver.config "serverThreads" }}
+            - name: SYMBOL_SERVER_THREADS
+              value: "{{ .Values.symbolserver.config.serverThreads | default 1  }}"
+            {{- end }}
+            {{- if hasKey .Values.indexer.config "serverThreads" }}
+            - name: INDEXER_COLUMN_INDEX_THREADS
+              value: "{{ .Values.indexer.config.serverThreads | default 1  }}"
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          securityContext:
+            privileged: {{ .Values.image.privileged }}
+            {{- if .Values.enableCrashDumpUpload }}
+            capabilities:
+              add:
+                - SYS_PTRACE
+            {{- end }}
+          resources:
+{{ toYaml .Values.restapi.resources | indent 12 }}
+          volumeMounts:
+            - mountPath: {{ .Values.data.path }}
+              name: data-pv
+            - mountPath: {{ .Values.output.path }}
+              name: output-pv
+            {{- if .Values.restapi.tls.enabled }}
+            - mountPath: /home/ubuntu/tls
+              name: tls
+              readOnly: true
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 30
+      volumes:
+        {{- if .Values.data.persistence.enabled }}
+        - name: data-pv
+          persistentVolumeClaim:
+            claimName: {{ .Values.data.persistence.existingClaim | default (include "bdi.data.fullname" .) }}
+        {{ else }}
+        - name: data-pv
+          hostPath:
+            path: {{ .Values.data.persistence.folder }}
+        {{- end }}
+        {{- if .Values.output.persistence.enabled }}
+        - name: output-pv
+          persistentVolumeClaim:
+            claimName: {{ .Values.output.persistence.existingClaim | default (include "bdi.output.fullname" .) }}
+        {{ else }}
+        - name: output-pv
+          hostPath:
+            path: {{ .Values.output.persistence.folder }}
+        {{- end }}
+        {{- if .Values.restapi.tls.enabled }}
+        - name: tls
+          secret:
+            secretName: {{ template "bdi.restapi.fullname" . }}
+            defaultMode: 0400
+            items:
+              - key: certificate
+                path: tls.cert
+              - key: key
+                path: tls.key
+        {{- end }}

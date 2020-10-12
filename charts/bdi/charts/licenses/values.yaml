@@ -1,0 +1,160 @@
+image:
+  ## Default registry where this repository should be pulled from.
+  ## Will be overridden by `global.imageRegistry` if set
+  registry: qliktech-docker.jfrog.io
+  ## Component's image name.
+  repository: licenses
+  ## Licenses image version.
+  ## ref: https://hub.docker.com/r/qlik/licenses/tags/
+  ##
+  tag: 3.38.0
+
+  ## Specify a imagePullPolicy: 'Always' if imageTag is 'latest', else set to 'IfNotPresent'.
+  ## ref: https://kubernetes.io/docs/user-guide/images/#pre-pulling-images
+  ##
+  # pullPolicy:
+  pullPolicy: IfNotPresent
+  ## Secrets for pulling images from a private docker registry.
+  ##
+  pullSecrets:
+    - name: artifactory-docker-secret
+
+configs:
+  natsEnabled: true
+  tokenAuthEnabled: true
+  policyDecisionsEnabled: true
+  isQcs: false
+  featureFlagsCache: false
+
+  data:
+    ## Log level (debug|info|warn|error)
+    logLevel: "info"
+    ## feature-flags service Uri
+    featureFlagsUri: "http://{{ .Release.Name }}-feature-flags:8080"
+    ## policy-decisions service Uri
+    policyDecisionsUri: "http://{{ .Release.Name }}-policy-decisions:5080"
+    ## endpoint to keys service
+    ## Use it to construct http://{.Release.Name}-keys:8080/v1/keys/qlik.api.internal (URI where the JWKS to validate JWTs is located)
+    keysUri: "http://{{ .Release.Name }}-keys:8080"
+    ## Address of NATS server
+    natsUri: "nats://{{ .Release.Name }}-nats-client:4222"
+    ## NATS Streaming cluster ID
+    natsStreamingClusterId: "{{ .Release.Name }}-nats-streaming-cluster"
+    ## edge-Auth service Uri
+    ## Use it to construct "http://{{ .Release.Name }}-edge-auth:8080"
+    edgeAuthUri: "http://{{ .Release.Name }}-edge-auth:8080"
+    ## Ingress authURL
+    ingressAuthUrl: "http://{{ .Release.Name }}-edge-auth.{{ .Release.Namespace }}.svc.cluster.local:8080/v1/auth"
+
+secrets:
+  stringData:
+    ## Specify a custom mongo uri. Not needed when the local mongo is enabled.
+    ## Secret: {{ Release.Name }}-mongoconfig.mongo-uri
+    mongodbUri: "mongodb://{{ .Release.Name }}-mongodb:27017/{{ .Release.Name }}?ssl=false"
+    ## NATS token authentication configuration
+    tokenAuthPrivateKeyId: _WChJV76hqP6rsnPFV44TNYUR1l4jweS612XuTMopz0
+    tokenAuthPrivateKey: |
+      -----BEGIN EC PRIVATE KEY-----
+      MIGkAgEBBDD5BGFKQX981pUj+dwaJqn3TlMeSfPQxHVCKJlfKwBnhr6xjWaEH0ej
+      pS3nTQwNmUSgBwYFK4EEACKhZANiAAS2IWhY4cJjhKv/rCVq64ORQ01Y56PvoCO3
+      Vg23AduOLe/N0IKPedki7uWX73onXZz5yIS2GiTAWKkapoA2QLnHWOrC3wckz7AW
+      AjJtggeoCvTUhJmG6LY9SCJAwEO8xuM=
+      -----END EC PRIVATE KEY-----
+
+## Service configuration.
+## ref: https://kubernetes.io/docs/user-guide/services/
+##
+service:
+  type: ClusterIP
+  port: 9200
+  ## Metrics configuration
+  ## Prometheus configuration
+  ## The annotations for prometheus scraping are included
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "{{ .Values.service.port }}"
+
+## Ingress configuration.
+## ref: https://kubernetes.io/docs/user-guide/ingress/
+##
+ingress:
+  ## class provides an kubernetes.io/ingress.class override of default nginx
+  class: "nginx"
+  ## Annotations to be added to the ingress.
+  ##
+  annotations:
+    nginx.ingress.kubernetes.io/auth-response-headers: Authorization
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      rewrite (?i)/api/v1/(.*) /v1/$1 break;
+
+## Horizontal pod autoscaler
+hpa:
+  enabled: false
+  ## Minimum number of replicas
+  # minReplicas: 1
+  ## Maximum number of replicas
+  # maxReplicas: 1
+
+# Currently templates a "main" container
+deployment:
+  ## Number of replicas.
+  ##
+  replicas: 1
+  ## Leader election sidecar container configuration.
+  ## Please override these values only if you know what you're doing.
+  ## ref: https://kubernetes.io/blog/2016/01/simple-leader-election-with-kubernetes/
+  #
+  election:
+    image:
+      registry: qliktech-docker.jfrog.io
+      repository: leader-elector
+      tag: "1.8.0"
+    ## election configs
+    configs:
+      ## election port
+      ##
+      port: 4040
+      data:
+    ## election secrets
+    secrets:
+      data:
+
+# Included if certs are required to be mounted into the pod
+certs:
+  mountPath: "/etc/ssl/certs"
+
+## Security
+# Create a component specific service account, role and rolebinding
+rbacEnabled: true
+
+## Subcharts
+## MongoDB configuration
+mongodb:
+  ## Enables a local mongo chart
+  enabled: false
+  image:
+    ## Bitnami MongoDB image tag
+    ## ref: https://hub.docker.com/r/bitnami/mongodb/tags/
+    ## This value overrides the mongo image tag in chart v.4.5.0
+    # (tag: 4.0.3-debian-9)
+    tag: 3.6.12
+
+  ## disable password for local dev mode
+  usePassword: false
+
+## Messaging chart configuration
+messaging:
+  ## Set messaging.enabled to true for localdev and CI builds
+  enabled: false
+  nats:
+    enabled: true
+    replicaCount: 1
+    auth:
+      enabled: false
+    clusterAuth:
+      enabled: false
+  nats-streaming:
+    enabled: true
+    replicaCount: 3
+    auth:
+      enabled: false

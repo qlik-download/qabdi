@@ -1,0 +1,165 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "bdi.qslworker.fullname" . }}
+  labels:
+    app: {{ template "bdi.qslworker.fullname" . }}
+    chart: {{ template "bdi.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  serviceName: {{ template "bdi.qslworker.fullname" . }}
+  replicas: {{ .Values.qslworker.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "bdi.qslworker.fullname" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "bdi.qslworker.fullname" . }}
+        release: {{ .Release.Name }}
+      annotations:
+{{ toYaml .Values.qslworker.annotations | indent 8 }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+      {{- end }}
+      {{- if .Values.qslworker.additionalAffinities }}
+      affinity:
+{{ toYaml .Values.qslworker.additionalAffinities | indent 8 }}
+      {{- end }}
+      {{- with .Values.qslworker.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      tolerations:
+{{ toYaml .Values.qslworker.tolerations | indent 8 }}
+      containers:
+        - name: {{ template "bdi.qslworker.fullname" . }}
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/home/ubuntu/dist/qsl_processor/qsl_processor_tool"]
+          args:
+          - -m
+          - "inference_worker"
+          - -p
+          - "44001"
+          - -o
+          - "0"
+          - -r
+          - "{{ template "bdi.qslexecutor.fullname" . }}"
+          - -x
+          - "44000"
+          - -c
+          - "/etc/config/qslworker.json"
+          - -l
+          - "{{.Values.acceptLicense}}"
+          env:
+          - name: KUBERNETES_MODE
+            value: "true"
+          - name: POD_NAME
+            value: "{{ template "bdi.qslworker.fullname" . }}"
+          - name: ACCEPT_QULA
+            value: {{ .Values.acceptLicense | quote }}
+          - name: REGISTRY_URI
+            value: "{{ template "bdi.registry.fullname" . }}:55057"
+          - name: PERSISTENCE_URI
+            value: "{{ template "bdi.persistence.fullname" . }}:55010"
+          - name: QBDI_MIN_SERVICE_COUNT_SYMBOL
+            value: {{ .Values.symbolserver.replicaCount | quote }}
+          {{- $redis := index .Values "redis-ha" }}
+          {{- if $redis.enabled }}
+          - name: KVS_HOST
+            value: {{ template "bdi.redis.fullname" . }}
+          - name: KVS_PORT
+            value: {{ $redis.sentinel.port | quote }}
+          - name: QBDI_STARTUP_VERBOSITY
+            value: "1"
+          {{- if and $redis.auth }}
+          - name: KVS_AUTH
+            valueFrom:
+              secretKeyRef:
+              {{- if $redis.existingSecret }}
+                name: {{ $redis.existingSecret }}
+              {{- else }}
+                name: {{ template "bdi.redis.fullname" . }}
+              {{- end }}
+                key: {{ $redis.authKey | quote }}
+          {{- end }}
+          - name: KVS_MASTER_NAME
+            value: {{ $redis.redis.masterGroupName | quote }}
+          {{- end }}
+          {{- if .Values.qslworker.resources.requests }}
+          {{- if .Values.qslworker.resources.requests.cpu }}
+          - name: QBDI_VCPU_REQUEST
+            value: {{ .Values.qslworker.resources.requests.cpu | default "" | quote }}
+          {{- end }}
+          {{- if .Values.qslworker.resources.requests.memory }}
+          - name: QBDI_MEMORY_REQUEST
+            value: {{ .Values.qslworker.resources.requests.memory | default "" | quote }}
+          {{- end }}
+          {{- end }}
+          {{- if .Values.qslworker.resources.limits }}
+          {{- if .Values.qslworker.resources.limits.cpu }}
+          - name: QBDI_VCPU_LIMIT
+            value: {{ .Values.qslworker.resources.limits.cpu | default "" | quote }}
+          {{- end }}
+          {{- if .Values.qslworker.resources.limits.memory }}
+          - name: QBDI_MEMORY_LIMIT
+            value: {{ .Values.qslworker.resources.limits.memory | default "" | quote }}
+          {{- end }}
+          {{- end }}
+          {{- include "bdi.cloudSync.exportSettings" . | indent 10 }}
+          - name: ENABLE_CRASH_DUMP
+            value: {{ .Values.enableCrashDumpUpload | quote }}
+          ports:
+            - name: qslworker
+              containerPort: 44001
+              protocol: TCP
+            - name: qslworker-r
+              containerPort: 54001
+              protocol: TCP
+          securityContext:
+            privileged: {{ .Values.image.privileged }}
+            {{- if .Values.enableCrashDumpUpload }}
+            capabilities:
+              add:
+                - SYS_PTRACE
+            {{- end }}
+            {{- include "bdi.qsl.commonprobes" (dict "Values" .Values "PortNum" 44001) | indent 10 }}
+          resources:
+{{ toYaml .Values.qslworker.resources | indent 12 }}
+          volumeMounts:
+            - mountPath: {{ .Values.data.path }}
+              name: data-pv
+            - mountPath: {{ .Values.output.path }}
+              name: output-pv
+            - name: config-volume
+              mountPath: /etc/config
+      volumes:
+        {{- if .Values.data.persistence.enabled }}
+        - name: data-pv
+          persistentVolumeClaim:
+            claimName: {{ .Values.data.persistence.existingClaim | default (include "bdi.data.fullname" .) }}
+        {{ else }}
+        - name: data-pv
+          hostPath:
+            path: {{ .Values.data.persistence.folder }}
+        {{- end }}
+        {{- if .Values.output.persistence.enabled }}
+        - name: output-pv
+          persistentVolumeClaim:
+            claimName: {{ .Values.output.persistence.existingClaim | default (include "bdi.output.fullname" .) }}
+        {{ else }}
+        - name: output-pv
+          hostPath:
+            path: {{ .Values.output.persistence.folder }}
+        {{- end }}
+        - name: config-volume
+          configMap:
+            name: {{ template "bdi.qsl.config.fullname" . }}
+  updateStrategy:
+    type: {{ .Values.qslworker.updateStrategy }}
+  podManagementPolicy: {{ .Values.qslworker.podManagementPolicy }}
